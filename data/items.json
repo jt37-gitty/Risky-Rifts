@@ -11,13 +11,15 @@
       "name": "Blazing Sword",
       "type": "weapon",
       "rarity": "uncommon",
-      "weight": 25
+      "weight": 25,
+      "element": "pyrith"
     },
     {
       "name": "Fireproof Helm",
       "type": "armour",
       "rarity": "rare",
-      "weight": 25
+      "weight": 25,
+      "element": "pyrith"
     }
   ],
   "aquarem": [
@@ -32,13 +34,15 @@
       "name": "Tidal Bow",
       "type": "weapon",
       "rarity": "uncommon",
-      "weight": 25
+      "weight": 25,
+      "element": "aquarem"
     },
     {
       "name": "Hydro Cloak",
       "type": "armour",
       "rarity": "rare",
-      "weight": 25
+      "weight": 25,
+      "element": "aquarem"
     }
   ],
   "terravite": [
@@ -53,13 +57,15 @@
       "name": "Terra Hammer",
       "type": "weapon",
       "rarity": "uncommon",
-      "weight": 25
+      "weight": 25,
+      "element": "terravite"
     },
     {
       "name": "Golem Plate",
       "type": "armour",
       "rarity": "rare",
-      "weight": 25
+      "weight": 25,
+      "element": "terravite"
     }
   ],
   "aythest": [
@@ -74,13 +80,15 @@
       "name": "Storm Dagger",
       "type": "weapon",
       "rarity": "uncommon",
-      "weight": 25
+      "weight": 25,
+      "element": "aythest"
     },
     {
       "name": "Skyguard Boots",
       "type": "armour",
       "rarity": "rare",
-      "weight": 25
+      "weight": 25,
+      "element": "aythest"
     }
   ],
   "voidite": [
@@ -95,13 +103,15 @@
       "name": "Shadow Blade",
       "type": "weapon",
       "rarity": "uncommon",
-      "weight": 25
+      "weight": 25,
+      "element": "voidite"
     },
     {
       "name": "Eclipse Guard",
       "type": "armour",
       "rarity": "rare",
-      "weight": 25
+      "weight": 25,
+      "element": "voidite"
     }
   ]
 }
