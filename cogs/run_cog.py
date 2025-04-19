@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord.ui import View, Button
-from random import randint, choices
+from random import randint, choices, random
 from utils import user_manager
 import json, os
 
@@ -17,15 +17,20 @@ class RunSession:
         self.user_id = user_id
         self.shard = shard
         self.depth = 1
+        self.max_chambers = randint(4, 8)
         self.loot = []
         self.xp = 0
         self.enemy_hp = None
+        self.enemy_atk = None
+        self.player_hp = 100
+        self.special_used = False
 
     def gen_enemy(self):
         lvl = self.depth
-        hp = 10 + lvl * 2
-        atk = 3 + lvl
+        hp = 20 + lvl * 5
+        atk = 5 + lvl * 2
         self.enemy_hp = hp
+        self.enemy_atk = atk
         return {'name': 'Goblin', 'hp': hp, 'atk': atk}
 
     def roll_loot(self):
@@ -43,22 +48,22 @@ class RunCog(commands.Cog):
 
     @commands.command(name='start')
     async def start(self, ctx):
-        """Begin a Rift run using your first Shard"""
         users = user_manager.get()
         uid = str(ctx.author.id)
         user = users.setdefault(uid, {'level': 0, 'xp': 0, 'shards': [], 'inventory': {}, 'current_run': None})
         if not user['shards']:
             return await ctx.send("❌ You have no Shards. Craft one with !craft <element>.")
         shard = user['shards'].pop(0)
-        session = RunSession(uid, shard)
-        active_runs[uid] = session
+        session = RunSession(ctx.author.id, shard)
+        active_runs[ctx.author.id] = session
         user_manager.save()
         await self.send_combat(ctx, session)
 
     async def send_combat(self, ctx_or_interaction, session):
         enemy = session.gen_enemy()
-        embed = discord.Embed(title=f"Rift Chamber {session.depth}",
-                              description=f"A wild {enemy['name']} appears! HP: {enemy['hp']}")
+        embed = discord.Embed(title=f"Rift Chamber {session.depth}", description="🧟 A wild enemy appears!")
+        embed.add_field(name="Enemy HP", value=str(enemy['hp']), inline=True)
+        embed.add_field(name="Your HP", value=str(session.player_hp), inline=True)
         view = CombatView(self, session)
 
         if isinstance(ctx_or_interaction, commands.Context):
@@ -66,21 +71,21 @@ class RunCog(commands.Cog):
         else:
             await ctx_or_interaction.response.edit_message(embed=embed, view=view)
 
-    async def finish_run(self, interaction, session):
+    async def finish_run(self, interaction, session, conquered=False):
         users = user_manager.get()
-        uid = session.user_id
+        uid = str(session.user_id)
         user = users[uid]
         inv = user.setdefault('inventory', {})
         for item in session.loot:
             inv[item['name']] = inv.get(item['name'], 0) + item['qty']
         user['xp'] += session.xp
         user_manager.save()
-        active_runs.pop(uid, None)
+        active_runs.pop(session.user_id, None)
 
+        message = "🌟 **Rift Conquered!**" if conquered else "🏃 You ran from the Rift."
         await interaction.response.edit_message(embed=discord.Embed(
             title="Run Complete!",
-            description=f"Total loot: {len(session.loot)} items\nTotal XP: {session.xp}"
-        ), view=None)
+            description=f"{message} Loot: {len(session.loot)} items XP: {session.xp}"), view=None)
 
 
 class CombatView(View):
@@ -89,30 +94,102 @@ class CombatView(View):
         self.cog = cog
         self.session = session
 
-    @discord.ui.button(label='Attack', style=discord.ButtonStyle.primary)
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.session.user_id:
+            await interaction.response.send_message("❌ This is not your Rift!", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label='🗡️ Attack', style=discord.ButtonStyle.primary)
     async def attack(self, interaction: discord.Interaction, button: discord.ui.Button):
         sess = self.session
-        damage = 5
+        damage = 15
         sess.enemy_hp -= damage
 
-        if sess.enemy_hp > 0:
-            await interaction.response.edit_message(embed=discord.Embed(
-                title=f"Rift Chamber {sess.depth}",
-                description=f"Enemy HP: {sess.enemy_hp} - you dealt {damage} damage."
-            ), view=self)
-        else:
+        if sess.enemy_hp <= 0:
             loot = sess.roll_loot()
             sess.loot.append(loot)
             sess.xp += 10
-            view = ContinueView(self.cog, sess)
-            await interaction.response.edit_message(embed=discord.Embed(
-                title=f"Chamber {sess.depth} Cleared!",
-                description=f"Loot: {loot['qty']}x {loot['name']}\nXP gained: 10"
-            ), view=view)
+            if sess.depth >= sess.max_chambers:
+                await self.cog.finish_run(interaction, sess, conquered=True)
+            else:
+                view = ContinueView(self.cog, sess)
+                await interaction.response.edit_message(embed=discord.Embed(
+                    title=f"Chamber {sess.depth} Cleared!",
+                    description=f"Loot: {loot['qty']}x {loot['name']} XP gained: 10"), view=view)
+            return
 
-    @discord.ui.button(label='Extract', style=discord.ButtonStyle.danger)
-    async def extract(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.cog.finish_run(interaction, self.session)
+        sess.player_hp -= sess.enemy_atk
+
+        if sess.player_hp <= 0:
+            await interaction.response.edit_message(embed=discord.Embed(
+                title="You Died... ☠️",
+                description="All loot lost. Better luck next time!"
+            ), view=None)
+            active_runs.pop(sess.user_id, None)
+            return
+
+        embed = discord.Embed(title=f"Rift Chamber {sess.depth}", description="You hit the enemy!")
+        embed.add_field(name="Enemy HP", value=str(max(sess.enemy_hp, 0)), inline=True)
+        embed.add_field(name="Your HP", value=str(sess.player_hp), inline=True)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label='🎯 Parry', style=discord.ButtonStyle.secondary)
+    async def parry(self, interaction: discord.Interaction, button: discord.ui.Button):
+        sess = self.session
+        success = random() < 0.5
+
+        if success:
+            sess.enemy_hp -= sess.enemy_atk
+            msg = f"🎯 Parry successful! You reflected {sess.enemy_atk} damage!"
+        else:
+            dmg = int(sess.enemy_atk * 1.5)
+            sess.player_hp -= dmg
+            msg = f"❌ Parry failed! You took {dmg} damage."
+
+        if sess.enemy_hp <= 0:
+            loot = sess.roll_loot()
+            sess.loot.append(loot)
+            sess.xp += 10
+            if sess.depth >= sess.max_chambers:
+                await self.cog.finish_run(interaction, sess, conquered=True)
+            else:
+                view = ContinueView(self.cog, sess)
+                await interaction.response.edit_message(embed=discord.Embed(
+                    title=f"Chamber {sess.depth} Cleared!",
+                    description=f"{msg} Loot: {loot['qty']}x {loot['name']} XP gained: 10"), view=view)
+            return
+
+        if sess.player_hp <= 0:
+            await interaction.response.edit_message(embed=discord.Embed(
+                title="You Died... ☠️",
+                description=f"{msg} All loot lost. Better luck next time!"), view=None)
+            active_runs.pop(sess.user_id, None)
+            return
+
+        embed = discord.Embed(title=f"Rift Chamber {sess.depth}", description=msg)
+        embed.add_field(name="Enemy HP", value=str(max(sess.enemy_hp, 0)), inline=True)
+        embed.add_field(name="Your HP", value=str(sess.player_hp), inline=True)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label='✨ Special', style=discord.ButtonStyle.success)
+    async def special(self, interaction: discord.Interaction, button: discord.ui.Button):
+        sess = self.session
+        if sess.special_used:
+            await interaction.response.send_message("✨ You've already used your special this run!", ephemeral=True)
+            return
+        sess.special_used = True
+        sess.enemy_hp -= 40
+
+        embed = discord.Embed(title=f"Rift Chamber {sess.depth}",
+                              description="✨ You unleashed your special attack!")
+        embed.add_field(name="Enemy HP", value=str(max(sess.enemy_hp, 0)), inline=True)
+        embed.add_field(name="Your HP", value=str(sess.player_hp), inline=True)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label='🏃 Run', style=discord.ButtonStyle.danger)
+    async def run(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.cog.finish_run(interaction, self.session, conquered=False)
 
 
 class ContinueView(View):
@@ -121,14 +198,20 @@ class ContinueView(View):
         self.cog = cog
         self.session = session
 
-    @discord.ui.button(label='Continue', style=discord.ButtonStyle.success)
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.session.user_id:
+            await interaction.response.send_message("❌ This is not your Rift!", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label='➡️ Continue', style=discord.ButtonStyle.success)
     async def cont(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.session.depth += 1
         await self.cog.send_combat(interaction, self.session)
 
-    @discord.ui.button(label='Extract', style=discord.ButtonStyle.danger)
-    async def extract(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.cog.finish_run(interaction, self.session)
+    @discord.ui.button(label='🏃 Run', style=discord.ButtonStyle.danger)
+    async def run(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.cog.finish_run(interaction, self.session, conquered=False)
 
 
 async def setup(bot):

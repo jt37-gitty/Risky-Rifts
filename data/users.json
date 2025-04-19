@@ -1,12 +1,16 @@
 {
   "853376090113703976": {
     "level": 0,
-    "xp": 60,
-    "shards": [],
+    "xp": 40,
+    "shards": [
+      {
+        "element": "pyrith",
+        "quality": "basic"
+      }
+    ],
     "inventory": {
-      "Aquarem": 39,
-      "Hydro Cloak": 1,
-      "Pyrith": 12
+      "Fireproof Helm": 2,
+      "Pyrith": 25
     },
     "current_run": null
   },
