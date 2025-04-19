@@ -1,0 +1,23 @@
+{
+  "853376090113703976": {
+    "level": 0,
+    "xp": 60,
+    "shards": [],
+    "inventory": {
+      "Aquarem": 39,
+      "Hydro Cloak": 1,
+      "Pyrith": 12
+    },
+    "current_run": null
+  },
+  "880471271199105025": {
+    "level": 0,
+    "xp": 30,
+    "shards": [],
+    "inventory": {
+      "Blazing Sword": 1,
+      "Fireproof Helm": 2
+    },
+    "current_run": null
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "pyrith": [
+    {
+      "name": "Pyrith",
+      "type": "resource",
+      "min": 5,
+      "max": 15,
+      "weight": 50
+    },
+    {
+      "name": "Blazing Sword",
+      "type": "weapon",
+      "rarity": "uncommon",
+      "weight": 25
+    },
+    {
+      "name": "Fireproof Helm",
+      "type": "armour",
+      "rarity": "rare",
+      "weight": 25
+    }
+  ],
+  "aquarem": [
+    {
+      "name": "Aquarem",
+      "type": "resource",
+      "min": 5,
+      "max": 15,
+      "weight": 50
+    },
+    {
+      "name": "Tidal Bow",
+      "type": "weapon",
+      "rarity": "uncommon",
+      "weight": 25
+    },
+    {
+      "name": "Hydro Cloak",
+      "type": "armour",
+      "rarity": "rare",
+      "weight": 25
+    }
+  ],
+  "terravite": [
+    {
+      "name": "Terravite",
+      "type": "resource",
+      "min": 5,
+      "max": 15,
+      "weight": 50
+    },
+    {
+      "name": "Terra Hammer",
+      "type": "weapon",
+      "rarity": "uncommon",
+      "weight": 25
+    },
+    {
+      "name": "Golem Plate",
+      "type": "armour",
+      "rarity": "rare",
+      "weight": 25
+    }
+  ],
+  "aythest": [
+    {
+      "name": "Aythest",
+      "type": "resource",
+      "min": 5,
+      "max": 15,
+      "weight": 50
+    },
+    {
+      "name": "Storm Dagger",
+      "type": "weapon",
+      "rarity": "uncommon",
+      "weight": 25
+    },
+    {
+      "name": "Skyguard Boots",
+      "type": "armour",
+      "rarity": "rare",
+      "weight": 25
+    }
+  ],
+  "voidite": [
+    {
+      "name": "Voidite",
+      "type": "resource",
+      "min": 5,
+      "max": 15,
+      "weight": 50
+    },
+    {
+      "name": "Shadow Blade",
+      "type": "weapon",
+      "rarity": "uncommon",
+      "weight": 25
+    },
+    {
+      "name": "Eclipse Guard",
+      "type": "armour",
+      "rarity": "rare",
+      "weight": 25
+    }
+  ]
+}
