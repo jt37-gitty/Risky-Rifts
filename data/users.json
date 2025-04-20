@@ -1,28 +1,26 @@
 {
   "853376090113703976": {
     "level": 0,
-    "xp": 260,
+    "xp": 15000,
     "shards": [],
     "inventory": {
       "Fireproof Helm": 4,
-      "Pyrith": 63,
+      "Pyrith": 84,
       "Blazing Sword": 3,
-      "Golem Plate": 1,
-      "Voidite": 47,
+      "Voidite": 37,
       "Hydro Cloak": 1,
-      "Tidal Bow": 1,
       "Aquarem": 23,
-      "Storm Dagger": 1,
+      "Storm Dagger": 2,
       "Aythest": 22,
-      "Skyguard Boots": 1
+      "Skyguard Boots": 1,
+      "Terravite": 14,
+      "Terra Hammer": 1,
+      "Golem Plate": 1
     },
     "current_run": null,
-    "coins": 334,
-    "equipped": {
-      "armor": "Golem Plate",
-      "weapon": "Blazing Sword"
-    },
-    "archetype": "pyrith"
+    "coins": 314,
+    "equipped": {},
+    "archetype": "voidite"
   },
   "880471271199105025": {
     "level": 0,
@@ -30,17 +28,14 @@
     "shards": [],
     "inventory": {
       "Blazing Sword": 1,
-      "Fireproof Helm": 2,
+      "Fireproof Helm": 1,
       "Skyguard Boots": 1,
-      "Storm Dagger": 4,
+      "Storm Dagger": 3,
       "Aythest": 50
     },
     "current_run": null,
     "coins": 120,
     "archetype": "pyrith",
-    "equipped": {
-      "weapon": "Storm Dagger",
-      "armor": "Fireproof Helm"
-    }
+    "equipped": {}
   }
 }
