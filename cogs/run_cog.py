@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord.ui import View, Button
 from random import randint, choices, random
 from utils import user_manager
+from data.rift_data import RIFT_DATA
 import json, os
 
 # Load loot tables
@@ -17,28 +18,35 @@ class RunSession:
         self.user_id = user_id
         self.shard = shard
         self.depth = 1
-        self.max_chambers = randint(4, 8)
+        self.max_chambers = randint(5, 10)
         self.loot = []
         self.xp = 0
-        self.enemy_hp = None
-        self.enemy_atk = None
 
-        # Calculate player HP: base 100 + 10 per level + 10 per health skill point
         users = user_manager.get()
         udata = users.get(str(user_id), {})
         level = udata.get('level', 0)
-        health_pts = udata.get('skills', {}).get('health', 0)
-        self.player_hp = 100 + level * 10 + health_pts * 10
+        self.player_hp = 100 + level * 10
+
+        element = shard['element']
+        mob_data = RIFT_DATA[element]
+        self.enemy_element = element
+        self.generate_enemy()
+
+        users = user_manager.get()
+        udata = users.get(str(user_id), {})
+        level = udata.get('level', 0)
+        self.player_hp = 100 + level * 10
 
         self.special_used = False
 
-    def gen_enemy(self):
-        lvl = self.depth
-        hp = 20 + lvl * 5
-        atk = 5 + lvl * 2
-        self.enemy_hp = hp
-        self.enemy_atk = atk
-        return {'name': 'Goblin', 'hp': hp, 'atk': atk}
+    def generate_enemy(self):
+        mob_data = RIFT_DATA[self.shard['element']]
+        users = user_manager.get()
+        udata = users.get(str(self.user_id), {})
+        level = udata.get('level', 0)
+        self.enemy_name = mob_data['mob']
+        self.enemy_hp = (self.depth + 1) ** 2 + mob_data['hp'] + level * 5
+        self.enemy_atk = int(mob_data['atk'] * (1 + 0.05 * (self.depth - 1)))
 
     def roll_loot(self):
         tbl = LOOT_TABLE.get(self.shard['element'], [])
@@ -57,9 +65,9 @@ class RunCog(commands.Cog):
     async def start(self, ctx):
         users = user_manager.get()
         uid = str(ctx.author.id)
-        user = users.setdefault(uid, {'level': 0, 'xp': 0, 'skill_points': 0, 'skills': {'damage':0,'health':0,'parry':0,'luck':0,'resource':0}, 'shards': [], 'inventory': {}, 'current_run': None})
+        user = users.setdefault(uid, {'level': 0, 'xp': 0, 'skill_points': 0, 'shards': [], 'inventory': {}, 'current_run': None})
         if not user['shards']:
-            return await ctx.send("❌ You have no Shards. Craft one with !craft <element>.")
+            return await ctx.send("❌ You have no Shards. Craft one with !craft.")
         shard = user['shards'].pop(0)
         session = RunSession(ctx.author.id, shard)
         active_runs[ctx.author.id] = session
@@ -67,9 +75,13 @@ class RunCog(commands.Cog):
         await self.send_combat(ctx, session)
 
     async def send_combat(self, ctx_or_interaction, session):
-        enemy = session.gen_enemy()
-        embed = discord.Embed(title=f"Rift Chamber {session.depth}", description="🧟 A wild enemy appears!")
-        embed.add_field(name="Enemy HP", value=str(enemy['hp']), inline=True)
+        rift_info = RIFT_DATA[session.shard['element']]
+        embed = discord.Embed(
+            title=f"{session.shard['element'].title()} Rift - Chamber {session.depth}",
+            description=f"{rift_info['mob']} emerges from the shadows...",
+            color=rift_info['color']
+        )
+        embed.add_field(name="Enemy HP", value=str(session.enemy_hp), inline=True)
         embed.add_field(name="Your HP", value=str(session.player_hp), inline=True)
         view = CombatView(self, session)
 
@@ -79,6 +91,11 @@ class RunCog(commands.Cog):
             await ctx_or_interaction.response.edit_message(embed=embed, view=view)
 
     async def finish_run(self, interaction, session, conquered=False):
+        from data.items import ITEM_ELEMENT_MAP
+        ELEMENT_EMOJIS = {
+            "pyrith": "🔥", "aquarem": "💧", "terravite": "🪨", "aythest": "🌪", "voidite": "🌑"
+        }
+
         users = user_manager.get()
         uid = str(session.user_id)
         user = users[uid]
@@ -88,51 +105,54 @@ class RunCog(commands.Cog):
         for item in session.loot:
             inv[item['name']] = inv.get(item['name'], 0) + item['qty']
 
-        # Apply XP and compute new level/skill points
+        # XP, level, and skill point gain
         old_level = user.get('level', 0)
-        user['xp'] = user.get('xp', 0) + session.xp
+        user['xp'] += session.xp
         new_level = user['xp'] // 100
         user['level'] = new_level
 
-        # Award 1 skill point for each 10 levels crossed
-        gained_pts = sum(
-            1
-            for lvl in range(old_level + 1, new_level + 1)
-            if lvl % 10 == 0
-        )
-        if gained_pts > 0:
-            user['skill_points'] = user.get('skill_points', 0) + gained_pts
+
 
         # Exhaust equipped gear
         eq = user.get('equipped', {})
+        lost_gear = []
         for slot in ('weapon', 'armor'):
             gear = eq.pop(slot, None)
             if gear:
                 inv[gear] = inv.get(gear, 0) - 1
                 if inv[gear] <= 0:
                     del inv[gear]
+                lost_gear.append((slot, gear))
 
         user_manager.save()
         active_runs.pop(session.user_id, None)
 
-        # Build summary
+        # 🧾 Build summary
         message = "🌟 **Rift Conquered!**" if conquered else "🏃 You ran from the Rift."
-        summary = (
-            f"{message}\n\n"
-            f"**XP Gained:** {session.xp}\n"
-            f"**Coins Earned:** {user.get('coins', 0)}\n"
-        )
-        if session.loot:
-            loot_lines = "\n".join(f"{i['qty']}x {i['name']}" for i in session.loot)
-            summary += f"**Loot Gained:**\n{loot_lines}\n"
-        if eq:
-            summary += "**Equipped Gear Lost:**\n"
-            summary += "\n".join(f"🗡️ {eq.get('weapon', '')}" if eq.get('weapon') else "")
-            summary += "\n".join(f"🛡️ {eq.get('armor', '')}" if eq.get('armor') else "")
+        coins = user.get("coins", 0)
+        level = user['level']
+        xp_bar = f"({user['xp'] % 100}/100)"
 
-        # Final embed
+        summary = f"{message}\n\n"
+        summary += f"📈 **Level {level}** {xp_bar}\n"
+        summary += f"💰 **Coins Earned:** {coins}\n"
+        summary += f"⭐ **XP Gained:** {session.xp}\n"
+
+        if session.loot:
+            summary += "\n📦 **Loot Collected:**\n"
+            for item in session.loot:
+                elem = ITEM_ELEMENT_MAP.get(item['name'])
+                emoji = ELEMENT_EMOJIS.get(elem, "📦")
+                summary += f"{emoji} {item['name']} x{item['qty']}\n"
+
+        if lost_gear:
+            summary += "\n🎽 **Exhausted Gear:**\n"
+            for slot, gear in lost_gear:
+                emoji = "🗡️" if slot == "weapon" else "🛡️"
+                summary += f"{emoji} {gear}\n"
+
         await interaction.response.edit_message(
-            embed=discord.Embed(title="Run Complete!", description=summary),
+            embed=discord.Embed(title="Run Complete!", description=summary.strip()),
             view=None
         )
 
@@ -151,8 +171,29 @@ class CombatView(View):
 
     @discord.ui.button(label='🗡️ Attack', style=discord.ButtonStyle.primary)
     async def attack(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from random import randint
         sess = self.session
-        damage = 15
+        users = user_manager.get()
+        uid = str(interaction.user.id)
+        user = users.get(uid, {})
+
+        damage = randint(12, 18)
+
+        # Crit chance
+        crit_chance = 0.1
+        is_crit = randint(1, 100) <= int(crit_chance * 100)
+        if is_crit:
+            damage = int(damage * 1.5)
+
+        # Elemental Multiplier
+        from utils.element_utils import get_multiplier  # Make sure this is imported
+        weapon_name = user.get("equipped", {}).get("weapon")
+        from data.items import ITEM_ELEMENT_MAP
+        weapon_elem = ITEM_ELEMENT_MAP.get(weapon_name)
+        multiplier = get_multiplier(weapon_elem, sess.enemy_element)
+        damage = int(damage * multiplier)
+
+        # Apply damage
         sess.enemy_hp -= damage
 
         if sess.enemy_hp <= 0:
@@ -178,7 +219,11 @@ class CombatView(View):
             active_runs.pop(sess.user_id, None)
             return
 
-        embed = discord.Embed(title=f"Rift Chamber {sess.depth}", description="You hit the enemy!")
+        msg = f"You hit the enemy for {damage} damage!"
+        if is_crit:
+            msg += " 💥 Critical hit!"
+
+        embed = discord.Embed(title=f"Rift Chamber {sess.depth}", description=msg)
         embed.add_field(name="Enemy HP", value=str(max(sess.enemy_hp, 0)), inline=True)
         embed.add_field(name="Your HP", value=str(sess.player_hp), inline=True)
         await interaction.response.edit_message(embed=embed, view=self)
@@ -186,7 +231,15 @@ class CombatView(View):
     @discord.ui.button(label='🎯 Parry', style=discord.ButtonStyle.secondary)
     async def parry(self, interaction: discord.Interaction, button: discord.ui.Button):
         sess = self.session
-        success = random() < 0.5
+
+        users = user_manager.get()
+        uid = str(interaction.user.id)
+        user = users.get(uid, {})
+
+        # Calculate parry success with Terra skill
+        parry_base = 0.5 + 0.02 * (sess.depth - 1)
+        parry_chance = parry_base
+        success = random() < parry_chance
 
         if success:
             sess.enemy_hp -= sess.enemy_atk
@@ -256,6 +309,7 @@ class ContinueView(View):
     @discord.ui.button(label='➡️ Continue', style=discord.ButtonStyle.success)
     async def cont(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.session.depth += 1
+        self.session.generate_enemy()
         await self.cog.send_combat(interaction, self.session)
 
     @discord.ui.button(label='🏃 Run', style=discord.ButtonStyle.danger)
