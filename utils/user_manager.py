@@ -21,5 +21,32 @@ def save():
     with open(users_file, 'w') as f:
         json.dump(_users, f, indent=2)
 
+def get_user(user_id):
+    user_id = str(user_id)
+    if user_id not in _users:
+        _users[user_id] = {"coins": 0}
+        save()
+    return _users[user_id]
+
+def add_coins(user_id, amount):
+    user = get_user(user_id)
+    user["coins"] += amount
+    save()
+
+def remove_coins(user_id,amount):
+    user = get_user(user_id)
+    user["coins"]-=amount
+    save()
+
+def multiply_coins(user_id,multiplier):
+    user = get_user(user_id)
+    user["coins"]*=multiplier
+    round(user["coins"])
+    save()
+
+def get_coins(user_id):
+    return get_user(user_id)["coins"]
+
 def get():
     return _users
+

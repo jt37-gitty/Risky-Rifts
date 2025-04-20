@@ -19,7 +19,7 @@ def get_multiplier(attacker_element: str, defender_element: str) -> float:
 def roll_crit() -> bool:
     return random.random() < CRIT_CHANCE
 
-def apply_crit(base_damage: int) -> (int, bool):
+def apply_crit(base_damage: int) -> (int, bool): # type: ignore
     if roll_crit():
         return int(base_damage * CRIT_MULTIPLIER), True
     return base_damage, False
