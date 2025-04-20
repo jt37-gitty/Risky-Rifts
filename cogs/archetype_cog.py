@@ -10,8 +10,8 @@ ARCHETYPES = {
     'voidite': 'Shadeborn'
 }
 
-COST = 20
-ELEMENT_COST = 10
+COST = 300
+ELEMENT_COST = 100
 
 class ArchetypeCog(commands.Cog):
     def __init__(self, bot):

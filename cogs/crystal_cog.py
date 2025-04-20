@@ -4,14 +4,14 @@ from discord.ui import View
 from random import randint, sample, choice
 from utils import user_manager
 
-TOTAL_STAGES = 20
+TOTAL_STAGES = 10
 
 class CrystalSession:
     def __init__(self):
         self.progress = 0
         self.failures = 0
         # Pick between 5 and 15 unique failure points from 1..19
-        n = randint(5, 15)
+        n = randint(2, 4)
         pts = sample(range(1, TOTAL_STAGES), n)
         # Always fail at the final stage (just before completion)
         if TOTAL_STAGES - 1 not in pts:

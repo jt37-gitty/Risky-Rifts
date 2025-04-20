@@ -1,4 +1,4 @@
-
+from random import randint
 import random
 
 # Weakness chart: attacker -> defender -> multiplier
@@ -19,7 +19,8 @@ def get_multiplier(attacker_element: str, defender_element: str) -> float:
 def roll_crit() -> bool:
     return random.random() < CRIT_CHANCE
 
-def apply_crit(base_damage: int) -> (int, bool): # type: ignore
-    if roll_crit():
-        return int(base_damage * CRIT_MULTIPLIER), True
-    return base_damage, False
+def apply_crit(base_dmg, luck=0):
+    chance = CRIT_CHANCE + (luck * 0.02)
+    if randint(1, 100) <= int(chance * 100):
+        return int(base_dmg * CRIT_MULTIPLIER), True
+    return base_dmg, False

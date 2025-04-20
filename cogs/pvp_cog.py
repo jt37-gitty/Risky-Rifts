@@ -59,14 +59,16 @@ class PvPCog(commands.Cog):
     async def end_duel(self, channel, session, winner, loser):
         users = user_manager.get()
         udata = users.get(str(winner.id), {})
-        udata.setdefault('shards', []).append({'element': choice(['fire', 'ice', 'earth', 'air'])})
+        #udata.setdefault('shards', []).append({'element': choice(['fire', 'ice', 'earth', 'air'])})
+        udata["xp"] += 50
+        udata["coins"] += 100
         user_manager.save()
 
         active_duels.pop(session.user1.id, None)
         active_duels.pop(session.user2.id, None)
 
         embed = discord.Embed(title="🏆 Duel Over", description=f"{winner.mention} has defeated {loser.mention}!")
-        embed.add_field(name="Reward", value="🎁 You received a random shard!", inline=False)
+        embed.add_field(name="Reward", value="🎁 You received a 100 coins and 20XP", inline=False)
         await channel.send(embed=embed)
 
 class AcceptView(View):
