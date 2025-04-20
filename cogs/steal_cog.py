@@ -26,7 +26,7 @@ class StealCog(commands.Cog):
         if victim["coins"] < 10:
             return await ctx.send("🪙 The target doesn't have enough coins to steal from!")
 
-        success = random.random() < 0.4  # 40% chance to succeed
+        success = random.random() < 0.3 # 30% chance to succeed
 
         if success:
             stolen = random.randint(10, max(50, victim["coins"]))
