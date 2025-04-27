@@ -62,7 +62,7 @@ class InfoCog(commands.Cog):
             "• 🏃 Run — Exit Rift **after battle**"
         ), inline=False)
         embed.add_field(name="6️⃣ Archetypes", value="Use `!archetype` to pick a class. Each one is unique!", inline=False)
-        embed.add_field(name="7️⃣ Leveling", value="Earn XP from Rifts. 100 XP = 1 Level. Leveling grants skill points!", inline=False)
+        embed.add_field(name="7️⃣ Leveling", value="Earn XP from Rifts. 100 XP = 1 Level. Try to reach Level 100!", inline=False)
         embed.add_field(name="8️⃣ Minigames", value="Try `!pvp`, `!steal`, and Sports games outside Rifts!", inline=False)
 
         await ctx.send(embed=embed)
