@@ -289,9 +289,11 @@ class CombatView(View):
         embed.add_field(name="Your HP", value=str(sess.player_hp), inline=True)
         await interaction.response.edit_message(embed=embed, view=self)
 
+    '''
     @discord.ui.button(label='🏃 Run', style=discord.ButtonStyle.danger)
     async def run(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.cog.finish_run(interaction, self.session, conquered=False)
+    '''
 
 
 class ContinueView(View):
